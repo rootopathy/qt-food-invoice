@@ -513,6 +513,10 @@ textarea {
   padding: 6px;
 }
 
+.declaration div:first-child {
+  font-weight: 700;
+}
+
 .signatory {
   display: flex;
   flex-direction: column;
