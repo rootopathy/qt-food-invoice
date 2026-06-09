@@ -403,15 +403,15 @@ async function downloadCurrentPdf(dataOverride) {
   }
   if (!isPreviewEditMode) render();
   const canvas = await html2canvas(els.invoicePaper, {
-    scale: 4,
+    scale: 3,
     backgroundColor: "#ffffff",
     useCORS: true,
     windowWidth: els.invoicePaper.scrollWidth,
     windowHeight: els.invoicePaper.scrollHeight,
   });
-  const imgData = canvas.toDataURL("image/png");
+  const imgData = canvas.toDataURL("image/jpeg", 0.92);
   const pdf = new window.jspdf.jsPDF("p", "mm", "a4");
-  pdf.addImage(imgData, "PNG", 0, 0, 210, 297, undefined, "NONE");
+  pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
   pdf.save(`invoice-${data.invoiceNo || "draft"}.pdf`);
 }
 
