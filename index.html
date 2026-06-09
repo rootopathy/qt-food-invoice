@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Q&T Food Invoice Maker</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace">
+        <aside class="panel">
+          <div class="brand">
+            <span>Q&T</span>
+            <strong>Food Invoice Maker</strong>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="Invoice sections">
+            <button class="tab active" data-tab="form" type="button">Create</button>
+            <button class="tab" data-tab="history" type="button">History</button>
+          </div>
+
+          <section id="formTab" class="tab-pane active">
+            <form id="invoiceForm" class="form-grid">
+              <input type="hidden" id="invoiceId" />
+              <input type="hidden" id="grossAmountOverride" />
+
+              <div class="section-title">Seller</div>
+              <label>
+                Company
+                <input id="sellerName" value="SR BAKERY MACHINES" />
+              </label>
+              <label>
+                Address
+                <textarea id="sellerAddress" rows="3">Office No.- A-24A Himgiri Enclave, Near Aggarwal Sweets, Nilothi Extension, Chander Vihar, Delhi-110041</textarea>
+              </label>
+              <label>
+                GSTIN
+                <input id="sellerGstin" value="07AEYPR9474F1ZI" />
+              </label>
+
+              <div class="section-title">Invoice</div>
+              <div class="two-col">
+                <label>
+                  Invoice No.
+                  <input id="invoiceNo" value="26" />
+                </label>
+                <label>
+                  Date
+                  <input id="invoiceDate" type="date" />
+                </label>
+              </div>
+              <div class="two-col">
+                <label>
+                  Payment Terms
+                  <input id="paymentTerms" />
+                </label>
+                <label>
+                  Other References
+                  <input id="otherReferences" />
+                </label>
+              </div>
+              <div class="two-col">
+                <label>
+                  Buyer's Order No.
+                  <input id="buyerOrderNo" />
+                </label>
+                <label>
+                  Destination
+                  <input id="destination" />
+                </label>
+              </div>
+
+              <div class="section-title">Consignee</div>
+              <label>
+                Name
+                <input id="consigneeName" value="Q&T Foods Private Limited 2022-2023" />
+              </label>
+              <label>
+                Address
+                <textarea id="consigneeAddress" rows="2">B-43, Sector - 81, Noida, UP</textarea>
+              </label>
+
+              <div class="section-title">Buyer</div>
+              <label>
+                Name
+                <input id="buyerName" value="Q&T Foods Private Limited 2022-2023" />
+              </label>
+              <label>
+                Address
+                <textarea id="buyerAddress" rows="2">361, IInd Floor, Sector - 1, Vaishali, Ghaziabad</textarea>
+              </label>
+              <label>
+                GSTIN
+                <input id="buyerGstin" value="09AAACQ5561F1ZE" />
+              </label>
+
+              <div class="section-title row-title">
+                Items
+                <button id="addItemBtn" class="small-btn" type="button">+ Add</button>
+              </div>
+              <div id="itemsEditor" class="items-editor"></div>
+
+              <div class="two-col">
+                <label>
+                  Tax Type
+                  <select id="taxMode">
+                    <option value="IGST">IGST</option>
+                    <option value="CGST_SGST">CGST + SGST</option>
+                  </select>
+                </label>
+                <label>
+                  Tax %
+                  <input id="taxRate" type="number" min="0" step="0.01" value="18" />
+                </label>
+              </div>
+              <div class="two-col">
+                <label>
+                  GST Amount
+                  <input id="taxAmountOverride" type="number" min="0" step="0.01" />
+                </label>
+                <label>
+                  Round Off
+                  <input id="roundOffDisplay" readonly />
+                </label>
+              </div>
+              <div class="two-col">
+                <label>
+                  Terms of Delivery
+                  <input id="termsOfDelivery" />
+                </label>
+              </div>
+
+              <div class="upload-box">
+                <input id="excelInput" type="file" accept=".xlsx,.xls,.csv" />
+                <span id="excelStatus">Upload Excel to create one bill from each row</span>
+                <div class="batch-nav">
+                  <button id="prevBillBtn" type="button">Previous</button>
+                  <strong id="batchCounter">No Excel batch</strong>
+                  <button id="nextBillBtn" type="button">Next Bill</button>
+                </div>
+              </div>
+
+              <div class="actions">
+                <button id="saveBtn" class="primary" type="submit">Save Invoice</button>
+                <button id="downloadBtn" type="button">Download PDF</button>
+                <button id="resetBtn" type="button">New</button>
+              </div>
+            </form>
+          </section>
+
+          <section id="historyTab" class="tab-pane">
+            <div class="history-tools">
+              <input id="historySearch" placeholder="Search invoice, buyer, amount..." />
+              <button id="downloadAllBtn" type="button">Download All</button>
+              <button id="clearHistoryBtn" type="button">Clear</button>
+            </div>
+            <div id="historyList" class="history-list"></div>
+          </section>
+        </aside>
+
+        <section class="preview-wrap">
+          <div class="preview-toolbar">
+            <strong>Live invoice preview</strong>
+            <div class="preview-actions">
+              <button id="previewEditBtn" type="button">Edit Preview</button>
+              <span id="saveState">Unsaved</span>
+            </div>
+          </div>
+          <div id="invoicePaper" class="invoice-paper"></div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
