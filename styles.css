@@ -225,7 +225,7 @@ textarea {
 }
 
 .history-tools {
-  grid-template-columns: 1fr 120px 80px;
+  grid-template-columns: 1fr 105px 105px 120px 80px;
   padding: 16px;
   border-bottom: 1px solid #e5e8ee;
 }

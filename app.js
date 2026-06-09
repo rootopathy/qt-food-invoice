@@ -86,6 +86,9 @@ function bindEvents() {
   document.getElementById("excelInput").addEventListener("change", handleExcel);
   document.getElementById("clearHistoryBtn").addEventListener("click", clearHistory);
   document.getElementById("downloadAllBtn").addEventListener("click", downloadAllInvoices);
+  document.getElementById("exportDataBtn").addEventListener("click", exportHistoryData);
+  document.getElementById("importDataBtn").addEventListener("click", () => document.getElementById("historyImportInput").click());
+  document.getElementById("historyImportInput").addEventListener("change", importHistoryData);
   document.getElementById("previewEditBtn").addEventListener("click", togglePreviewEdit);
   document.getElementById("prevBillBtn").addEventListener("click", () => moveBatch(-1));
   document.getElementById("nextBillBtn").addEventListener("click", () => moveBatch(1));
@@ -351,10 +354,16 @@ async function downloadCurrentPdf(dataOverride) {
     return;
   }
   if (!isPreviewEditMode) render();
-  const canvas = await html2canvas(els.invoicePaper, { scale: 2, backgroundColor: "#ffffff" });
+  const canvas = await html2canvas(els.invoicePaper, {
+    scale: 4,
+    backgroundColor: "#ffffff",
+    useCORS: true,
+    windowWidth: els.invoicePaper.scrollWidth,
+    windowHeight: els.invoicePaper.scrollHeight,
+  });
   const imgData = canvas.toDataURL("image/png");
   const pdf = new window.jspdf.jsPDF("p", "mm", "a4");
-  pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
+  pdf.addImage(imgData, "PNG", 0, 0, 210, 297, undefined, "NONE");
   pdf.save(`invoice-${data.invoiceNo || "draft"}.pdf`);
 }
 
@@ -429,6 +438,54 @@ function clearHistory() {
   invoices = [];
   persist();
   renderHistory();
+}
+
+function exportHistoryData() {
+  const payload = {
+    app: "qt-food-invoice",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    invoices,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `qt-food-invoice-data-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  els.saveState.textContent = `${invoices.length} invoices exported`;
+}
+
+async function importHistoryData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const payload = JSON.parse(await file.text());
+    const imported = Array.isArray(payload) ? payload : payload.invoices;
+    if (!Array.isArray(imported)) throw new Error("Invalid invoice data file");
+    const withIds = imported.map((invoice) => ({
+      ...invoice,
+      invoiceId: invoice.invoiceId || crypto.randomUUID(),
+      updatedAt: invoice.updatedAt || new Date().toISOString(),
+    }));
+    const existingIds = new Set(invoices.map((invoice) => invoice.invoiceId));
+    invoices = [
+      ...withIds.filter((invoice) => !existingIds.has(invoice.invoiceId)),
+      ...invoices,
+    ];
+    persist();
+    renderHistory();
+    if (withIds[0]) fillForm(withIds[0]);
+    switchTab("history");
+    els.saveState.textContent = `${withIds.length} invoices imported`;
+  } catch (error) {
+    alert(`Import failed: ${error.message}`);
+  } finally {
+    event.target.value = "";
+  }
 }
 
 async function handleExcel(event) {
