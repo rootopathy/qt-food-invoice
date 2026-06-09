@@ -28,6 +28,7 @@
             <form id="invoiceForm" class="form-grid">
               <input type="hidden" id="invoiceId" />
               <input type="hidden" id="grossAmountOverride" />
+              <input type="hidden" id="signatureImage" />
 
               <div class="section-title">Seller</div>
               <label>
@@ -133,6 +134,16 @@
                   Terms of Delivery
                   <input id="termsOfDelivery" />
                 </label>
+              </div>
+
+              <div class="section-title">Signature</div>
+              <div class="signature-upload">
+                <label>
+                  Upload Sign
+                  <input id="signatureInput" type="file" accept="image/*" />
+                </label>
+                <button id="clearSignatureBtn" type="button">Clear Sign</button>
+                <div id="signaturePreview" class="signature-preview">Default Sign</div>
               </div>
 
               <div class="upload-box">

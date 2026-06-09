@@ -21,6 +21,7 @@ const fields = [
   "taxMode",
   "taxRate",
   "termsOfDelivery",
+  "signatureImage",
 ];
 
 const els = {};
@@ -43,6 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
   els.roundOffDisplay = document.getElementById("roundOffDisplay");
   els.excelStatus = document.getElementById("excelStatus");
   els.batchCounter = document.getElementById("batchCounter");
+  els.signatureInput = document.getElementById("signatureInput");
+  els.signaturePreview = document.getElementById("signaturePreview");
 
   els.invoiceDate.value = "2023-10-18";
   invoices = loadInvoices();
@@ -92,6 +95,8 @@ function bindEvents() {
   document.getElementById("previewEditBtn").addEventListener("click", togglePreviewEdit);
   document.getElementById("prevBillBtn").addEventListener("click", () => moveBatch(-1));
   document.getElementById("nextBillBtn").addEventListener("click", () => moveBatch(1));
+  document.getElementById("signatureInput").addEventListener("change", handleSignatureUpload);
+  document.getElementById("clearSignatureBtn").addEventListener("click", clearSignature);
   els.taxRate.addEventListener("input", syncTaxAmountFromItems);
   els.historySearch.addEventListener("input", renderHistory);
   updateBatchCounter();
@@ -176,6 +181,8 @@ function fillForm(data) {
   fields.forEach((id) => {
     if (id in data) els[id].value = data[id] || "";
   });
+  if (els.signatureInput) els.signatureInput.value = "";
+  updateSignaturePreview();
   els.itemsEditor.innerHTML = "";
   (data.items || []).forEach(addItem);
   if (!data.items || data.items.length === 0) addItem({ description: "", quantity: "", rate: "", per: "", amount: "" });
@@ -207,6 +214,9 @@ function resetForm() {
   els.taxMode.value = "IGST";
   els.taxAmountOverride.value = "";
   els.grossAmountOverride.value = "";
+  els.signatureImage.value = "";
+  if (els.signatureInput) els.signatureInput.value = "";
+  updateSignaturePreview();
   els.itemsEditor.innerHTML = "";
   addItem({ description: "", quantity: "", rate: "", per: "", amount: "" });
   els.saveState.textContent = "Unsaved";
@@ -224,6 +234,9 @@ function syncTaxAmountFromItems() {
 function render() {
   if (isPreviewEditMode) return;
   const data = collectData();
+  const signatureMarkup = data.signatureImage
+    ? `<img class="signature-image" src="${escapeAttr(data.signatureImage)}" alt="Signature">`
+    : `<div class="signature-mark">Sr</div>`;
   const first = data.items[0] || {};
   const chargeLines = taxChargeLines(data);
   const chargeLabels = [
@@ -319,13 +332,48 @@ function render() {
         </div>
         <div class="signatory">
           <div class="bold">for ${escapeHtml(data.sellerName)}</div>
-          <div class="signature-mark">Sr</div>
+          ${signatureMarkup}
           <div>Authorised Signatory</div>
         </div>
       </div>
     </div>
     <div class="generated">This is a Computer Generated Invoice</div>
   `;
+}
+
+function handleSignatureUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("Please upload an image file for signature.");
+    event.target.value = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    els.signatureImage.value = reader.result;
+    updateSignaturePreview();
+    els.saveState.textContent = "Unsaved";
+    render();
+  });
+  reader.readAsDataURL(file);
+}
+
+function clearSignature() {
+  els.signatureImage.value = "";
+  if (els.signatureInput) els.signatureInput.value = "";
+  updateSignaturePreview();
+  els.saveState.textContent = "Unsaved";
+  render();
+}
+
+function updateSignaturePreview() {
+  if (!els.signaturePreview) return;
+  if (els.signatureImage.value) {
+    els.signaturePreview.innerHTML = `<img src="${escapeAttr(els.signatureImage.value)}" alt="Signature preview">`;
+  } else {
+    els.signaturePreview.textContent = "Default Sign";
+  }
 }
 
 function taxChargeLines(data) {
